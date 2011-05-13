@@ -1,0 +1,66 @@
+<html>
+<head>
+	<title>asdf</title>
+	<script type="text/javascript" src="loader.js"></script>
+	<script type="text/javascript">
+
+		// (function (scope) {
+		if (typeof (window.g_loader) == 'undefined')
+			g_loader = new Loader({ nocache: true });
+		// })(this);
+
+		function button1() {
+			console.log('button1 clicked');
+			g_loader.run(function () {
+				console.log('button1 action, everything ready.');
+				alert(mod1value);
+			}, ['module1'], '');
+		};
+
+		function button2() {
+			console.log('button2 clicked');
+			g_loader.run(function () {
+				console.log('button2 action, everything ready.');
+				alert(mod2value);
+			}, ['module2'], '');
+		};
+
+
+		console.log('queueing...');
+		g_loader.run(function () {
+			console.log('auto-queued item called.');
+		});
+		console.log('done queueing...');
+
+		g_loader.run(function () { console.log('queued item 1 onload.'); }, [], 'load');
+		g_loader.run(function () { console.log('queued item 2 onload.'); }, ['module1'], 'load');
+		g_loader.run(function () { console.log('queued item 1 onready.'); }, [], 'ready');
+		g_loader.run(function () { console.log('queued item 2 onready.'); }, [], 'ready');
+
+		if (document.addEventListener) {
+			console.log('registering handlers with addEventListener');
+			document.addEventListener('load', function () { g_loader.fire('load'); }, false);
+			document.addEventListener('DOMContentLoaded', function () { g_loader.fire('ready'); }, false);
+		} else if (document.attachEvent) {
+			console.log('registering handlers with attachEvent');
+			document.attachEvent('onload', function () { g_loader.fire('load'); });
+			document.attachEvent('ondocumentready', function () { g_loader.fire('ready'); });
+		} else {
+			console.log('registering handlers fallback');
+			document.onload = function () { g_loader.fire('load'); };
+			document.ondocumentready = function () { g_loader.fire('ready'); };
+		}
+		document.onreadystatechange = function () {
+			if (document.readyState == 'complete') {
+				g_loader.fire('ready');
+			}
+		}
+
+	</script>
+</head>
+<body>
+	<a href="javascript:button1();">button 1</a><br />
+	<a href="javascript:button2();">button 2</a><br />
+	hello
+</body>
+</html>
