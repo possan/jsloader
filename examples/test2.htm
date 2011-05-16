@@ -1,0 +1,18 @@
+<html>
+<head>
+	<title>test2</title>
+	<script type="text/javascript" src="../loader.js"></script>
+	<script type="text/javascript">
+		var loader = new Loader({ root: 'test2-', nocache:true, domevents: true });
+		loader.when('ready', function () {
+			loader.requires(['distance'], function () {
+				var d = dummy_distance({ x: 0, y: 0 }, { x: 4, y: 3 });
+				document.getElementById('result').innerHTML = d.toString();
+			});
+		}); 
+	</script>
+</head>
+<body>
+	The result of sqrt(3*3+4*4) (5) should be on shown here: <span id="result">waiting...</span>
+</body>
+</html>

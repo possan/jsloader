@@ -1,66 +1,51 @@
 <html>
 <head>
-	<title>asdf</title>
-	<script type="text/javascript" src="loader.js"></script>
+	<title>test1</title>
+	<script type="text/javascript" src="../loader-release.js"></script>
 	<script type="text/javascript">
-
-		// (function (scope) {
-		if (typeof (window.g_loader) == 'undefined')
-			g_loader = new Loader({ nocache: true });
-		// })(this);
-
+		
+		// random tests
+		 
+		var loader = new Loader({ root: 'test1-', domevents: true });
+		
 		function button1() {
-			console.log('button1 clicked');
-			g_loader.run(function () {
-				console.log('button1 action, everything ready.');
+			//console.log('button1 clicked');
+			loader.requires('module1',function () {
+				//console.log('button1 action, everything ready.');
 				alert(mod1value);
-			}, ['module1'], '');
+			});
 		};
 
 		function button2() {
-			console.log('button2 clicked');
-			g_loader.run(function () {
-				console.log('button2 action, everything ready.');
+			//console.log('button2 clicked');
+			loader.requires(['module2'], function () {
+				//console.log('button2 action, everything ready.');
 				alert(mod2value);
-			}, ['module2'], '');
+			});
 		};
 
-
-		console.log('queueing...');
-		g_loader.run(function () {
+		//console.log('queueing...');
+		loader.run(function () {
 			console.log('auto-queued item called.');
 		});
-		console.log('done queueing...');
+		//console.log('done queueing...');
 
-		g_loader.run(function () { console.log('queued item 1 onload.'); }, [], 'load');
-		g_loader.run(function () { console.log('queued item 2 onload.'); }, ['module1'], 'load');
-		g_loader.run(function () { console.log('queued item 1 onready.'); }, [], 'ready');
-		g_loader.run(function () { console.log('queued item 2 onready.'); }, [], 'ready');
+		loader.when('ready', function () {
+			loader.run(function () {
+				console.log('dom ready; loader without dependencies.');
+			});
+		});
 
-		if (document.addEventListener) {
-			console.log('registering handlers with addEventListener');
-			document.addEventListener('load', function () { g_loader.fire('load'); }, false);
-			document.addEventListener('DOMContentLoaded', function () { g_loader.fire('ready'); }, false);
-		} else if (document.attachEvent) {
-			console.log('registering handlers with attachEvent');
-			document.attachEvent('onload', function () { g_loader.fire('load'); });
-			document.attachEvent('ondocumentready', function () { g_loader.fire('ready'); });
-		} else {
-			console.log('registering handlers fallback');
-			document.onload = function () { g_loader.fire('load'); };
-			document.ondocumentready = function () { g_loader.fire('ready'); };
-		}
-		document.onreadystatechange = function () {
-			if (document.readyState == 'complete') {
-				g_loader.fire('ready');
-			}
-		}
-
+		loader.when('load', function () {
+			loader.run(function () {
+				console.log('dom load;');
+			});
+		});
+  
 	</script>
 </head>
 <body>
 	<a href="javascript:button1();">button 1</a><br />
-	<a href="javascript:button2();">button 2</a><br />
-	hello
+	<a href="javascript:button2();">button 2</a><br /> 
 </body>
 </html>

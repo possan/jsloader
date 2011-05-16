@@ -1,0 +1,20 @@
+<html>
+<head>
+	<title>test3</title>
+	<script type="text/javascript" src="../loader.js"></script>
+	<script type="text/javascript">
+		// same as test2 with preloaded dependencies, this example should not load any external resources.
+		var loader = new Loader({ root: '', nocache: true, domevents: true});
+		loader.load('test3-combined-packed');
+		loader.when('ready', function () {
+			loader.requires(['distance'], function () {
+				var d = dummy_distance({ x: 0, y: 0 }, { x: 4, y: 3 });
+				document.getElementById('result').innerHTML = d.toString();
+			});
+		}); 
+	</script>
+</head>
+<body>
+	The result of sqrt(3*3+4*4) (5) should be on shown here: <span id="result">waiting...</span>
+</body>
+</html>
