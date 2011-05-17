@@ -2,7 +2,7 @@
 // JS LOADER 0.1
 //
 
-/** @define {boolean} DEBUG */
+/** @define {boolean} DEBUG */ 
 var DEBUG = true;
 
 /** @constructor */

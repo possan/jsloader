@@ -1,8 +1,8 @@
 //
 // JS READY 0.1
 //
-
-/** @define {boolean} DEBUG */
+                               
+/** @define {boolean} DEBUG */ 
 var DEBUG = true;
 
 window["ready"] = (function () {
