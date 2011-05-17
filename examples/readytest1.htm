@@ -1,0 +1,32 @@
+<html>
+<head>
+	<title>test1</title>
+	<script language="javascript" type="text/javascript" src="../ready.js"></script>
+	<script language="javascript" type="text/javascript">
+		(function () {
+
+			var idx = 0;
+		//	var ready = new Ready();
+
+			ready(function () {
+				// alert('should fire on load');
+				var el = document.getElementById('legacydebug');
+				el.innerHTML = 'ready '+idx;
+				idx++;
+			});
+
+			button1 = function () {
+				ready(function () {
+					alert('should fire directly');
+				});
+			}
+		})();
+	</script>
+</head>
+<body>
+	<a href="javascript:button1();">button 1</a><br />
+	<a href="javascript:button2();">button 2</a><br />
+	<div id="legacydebug">
+	</div>
+</body>
+</html>

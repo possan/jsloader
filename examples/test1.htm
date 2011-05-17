@@ -1,16 +1,17 @@
 <html>
 <head>
 	<title>test1</title>
-	<script type="text/javascript" src="../loader-release.js"></script>
-	<script type="text/javascript">
-		
+	<script language="javascript" type="text/javascript" src="../ready-release.js"></script>
+	<script language="javascript" type="text/javascript" src="../loader-release.js"></script>
+	<script language="javascript" type="text/javascript">
+
 		// random tests
 		 
-		var loader = new Loader({ root: 'test1-', domevents: true });
-		
+		var loader = new Loader({ root: 'test1-' });
+
 		function button1() {
 			//console.log('button1 clicked');
-			loader.requires('module1',function () {
+			loader.requires('module1', function () {
 				//console.log('button1 action, everything ready.');
 				alert(mod1value);
 			});
@@ -24,21 +25,21 @@
 			});
 		};
 
-		//console.log('queueing...');
-		loader.run(function () {
-			console.log('auto-queued item called.');
-		});
-		//console.log('done queueing...');
-
-		loader.when('ready', function () {
-			loader.run(function () {
-				console.log('dom ready; loader without dependencies.');
+		var x = 3;
+		ready(function () {
+			loader.requires('dep2', function () {
+				x = 42;				
+			});
+			loader.requires('dep2', function () {
+				var el = document.getElementById('legacydebug');
+				el.innerHTML = 'ready ' + x;
 			});
 		});
 
-		loader.when('load', function () {
+		ready(function () {
 			loader.run(function () {
-				console.log('dom load;');
+				var el = document.getElementById('legacydebug');
+				el.innerHTML = 'ready '+x;
 			});
 		});
   
@@ -46,6 +47,8 @@
 </head>
 <body>
 	<a href="javascript:button1();">button 1</a><br />
-	<a href="javascript:button2();">button 2</a><br /> 
+	<a href="javascript:button2();">button 2</a><br />
+	<div id="legacydebug">
+	</div>
 </body>
 </html>

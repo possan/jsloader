@@ -1,5 +1,3 @@
-// console.log('in dep3.js code');
-module(function () {
+module.provides('dep3',function () {
     dep3value = "dep3 value";
-    provides('dep3');
 });

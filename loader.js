@@ -1,5 +1,5 @@
 //
-// LOADER API
+// JS LOADER 0.1
 //
 
 /** @define {boolean} DEBUG */
@@ -7,19 +7,6 @@ var DEBUG = true;
 
 /** @constructor */
 function Loader(opts) {
-
-    if (typeof XMLHttpRequest == "undefined")
-        XMLHttpRequest = function () {
-            try { return new ActiveXObject("Msxml2.XMLHTTP.6.0"); }
-            catch (e) { }
-            try { return new ActiveXObject("Msxml2.XMLHTTP.3.0"); }
-            catch (e) { }
-            try { return new ActiveXObject("Microsoft.XMLHTTP"); }
-            catch (e) { }
-            //Microsoft.XMLHTTP points to Msxml2.XMLHTTP and is redundant
-            throw new Error("This browser does not support XMLHttpRequest.");
-        };
-
     var scope = this.callee;
 
     /** @private */
@@ -32,16 +19,37 @@ function Loader(opts) {
             loaded: [],
             ready: []
         },
-        // filequeue: [],
-        // bvexequeue: [],
-        nocache: false,
-        domevents: false,
-        events: []
+        nocache: DEBUG
     }
+
+    var ret = {};
+
+    //
+    // LOGGING
+    //
 
     p.log = function (var_args) {
         if (DEBUG) {
-            console.log.apply(console, arguments);
+            var console_ok = false;
+            if (typeof (console) != 'undefined') {
+                try {
+                    console.log.apply(console, arguments);
+                    console_ok = true;
+                } catch (e) {
+                }
+            }
+            if (!console_ok) {
+                var el = document.getElementById('legacydebug');
+                if (typeof (el) != 'undefined' && el) {
+                    var el2 = document.createElement('div');
+                    var str = '';
+                    for (var k = 0; k < arguments.length; k++)
+                        str += arguments[k] + ' ';
+                    // alert(str);
+                    el2.innerHTML = str;
+                    el.appendChild(el2);
+                }
+            }
         }
     };
 
@@ -54,32 +62,59 @@ function Loader(opts) {
     if (opts && opts["nocache"])
         p.nocache = opts["nocache"];
 
-    if (opts && opts["domevents"])
-        p.domevents = opts["domevents"];
-
     //
     // Internal jobqueue
     //
 
     p._jobQueue = [];
 
-    p.queueJob = function (data) {
-        p.log('queue job', data);
-        p._jobQueue.push(data);
-        p.log('new queue length: ' + p._jobQueue.length, p._jobQueue);
-        // TODO: wake timer up
+    p.queueJob = function (job) {
+        if (DEBUG) {
+            job.toString = function () {
+                var ret = "";
+                if (typeof (this.deps) != 'undefined' && this.deps.length > 0)
+                    ret += "deps=" + this.deps;
+                if (typeof (this.provides) != 'undefined') {
+                    if (ret != "")
+                        ret += ", ";
+                    ret += "provides=" + this.provides;
+                }
+                // if (ret != "")
+                //  ret = " " + ret;
+                ret = "[" + ret + "]";
+                return ret;
+            }
+        }
+        DEBUG && p.log('queueJob: queueing ' + job);
+        p._jobQueue.push(job);
+        if (DEBUG) {
+            for (var k = 0; k < p._jobQueue.length; k++)
+                p.log('queueJob: new queue #' + k + ': ' + p._jobQueue[k]);
+        }
     }
 
+    p.tickCounter = 0;
+
     p.combTick = function () {
-        p.log('combTick; queue length: ' + p._jobQueue.length);
+        p.tickCounter++;
+
+        // p.log('combTick #'+p.tickCounter);
+
         if (p._jobQueue.length < 1) {
+            DEBUG && p.log('combTick #' + p.tickCounter + '; queue empty.');
             // queue is empty, check again in a while.
-            p.queueCombTick(DEBUG ? 6000 : 2000);
+            p.queueCombTick(DEBUG ? 2000 : 5000);
             return;
         }
 
+        DEBUG && p.log('--------------------------------------------------------------------------');
+        DEBUG && p.log('combTick #' + p.tickCounter + '; ' + p._jobQueue.length + ' jobs in queue.');
+        DEBUG && p.log('deps.loading: ' + p.deps.loading);
+        DEBUG && p.log('deps.loaded: ' + p.deps.loaded);
+        DEBUG && p.log('deps.ready: ' + p.deps.ready);
+        DEBUG && p.log('--------------------------------------------------------------------------');
+
         var job = p._jobQueue.splice(0, 1)[0];
-        p.log('running job', job);
         job.handler(job);
     }
 
@@ -89,8 +124,8 @@ function Loader(opts) {
         if (p.lastCombTick != -1)
             clearTimeout(p.lastCombTick);
         if (typeof (delay) == 'undefined')
-            delay = DEBUG ? 1000 : 1;
-        p.log('queue comb tick; delay=' + delay);
+            delay = DEBUG ? 100 : 1;
+        // p.log('queue comb tick; delay=' + delay);
         p.lastCombTick = setTimeout(function () {
             p.lastCombTick = -1;
             p.combTick();
@@ -101,40 +136,95 @@ function Loader(opts) {
     // XHR / URL junk
     //
 
+    // from fiji xhr: http://code.google.com/p/xhr/source/browse/trunk/xhr.js
+    p.ie_activex = false;
+    p.getXHR = function () {
+        if (window.XMLHttpRequest) {
+            DEBUG && p.log('creating using window.XMLHttpRequest');
+            return new XMLHttpRequest();
+        } else if (window["ActiveXObject"]) {
+            DEBUG && p.log('creating using window.ActiveXObject');
+            if (p.ie_activex) {
+                return new ActiveXObject(p.ie_activex);
+            } else {
+                var axs = ["Msxml2.XMLHTTP.6.0", "Msxml2.XMLHTTP.5.0", "Msxml2.XMLHTTP.4.0", "MSXML2.XMLHTTP.3.0", "MSXML2.XMLHTTP", "Microsoft.XMLHTTP"];
+                for (var i = 0; i < axs.length; i++) {
+                    try {
+                        DEBUG && p.log('trying ' + axs[i]);
+                        var xhr = new ActiveXObject(axs[i]);
+                        DEBUG && p.log('got ' + xhr);
+                        if (xhr) {
+                            p.ie_activex = axs[i];
+                            return xhr;
+                            break;
+                        }
+                    }
+                    catch (e) { /* next */ }
+                }
+            }
+        }
+        DEBUG && p.log('no xhr created.');
+        return false;
+    };
+
     // modified xhr from xui 2.0.0: http://xuijs.com/downloads/xui-2.0.0.js
     p.xhr = function (url, options) {
+
         var o = options ? options : {};
         if (typeof options == "function") {
             o = {};
             o.callback = options;
         };
+        p.log('q');
         var that = this,
-            req = new XMLHttpRequest(),
             method = o.method || 'get',
-            async = o.async || true,
-            params = o.data || null,
             i = 0;
-        req.queryString = params;
-        req.open(method, url, async);
-        if (o.headers) {
-            for (; i < o.headers.length; i++) {
-                req.setRequestHeader(o.headers[i].name, o.headers[i].value);
-            }
+
+        var req = p.getXHR();
+        if (typeof (req) == 'undefined') {
+            DEBUG && p.log('unable to create a xhr');
+            return;
         }
-        req.handleResp = o.callback;
-        req.handleError = (o.error && typeof o.error == 'function') ? o.error : function () { };
-        function hdl() {
+
+        // p-c req.handleResp = o.callback;
+        o.error = (o.error && typeof o.error == 'function') ? o.error : function () { };
+
+        req.onreadystatechange = function (a) {
+            p.log('req.onreadystatechange', req.readyState);
             if (req.readyState == 4) {
-                delete (that.xmlHttpRequest);
-                if (req.status === 0 || req.status == 200) req.handleResp();
-                if ((/^[45]/).test(req.status)) req.handleError();
+                p.log('req.status', req.status);
+                // delete (that.xmlHttpRequest);
+                if (req.status === 0 || req.status == 200)
+                    o.callback.apply(req, [that]);
+                if ((/^[45]/).test(req.status))
+                    o.error.apply(req);
             }
         }
-        if (async) {
-            req.onreadystatechange = hdl;
-            xmlHttpRequest = req;
+
+        /*
+        if (o.headers) {
+        for (; i < o.headers.length; i++) {
+        req.setRequestHeader(o.headers[i].name, o.headers[i].value);
         }
-        req.send(params);
+        }
+        */
+        req.open(method, url, true);
+
+        that.xmlHttpRequest = req;
+
+        /*
+        p.log('q');
+        function hdl() {
+           
+        }
+        p.log('q');
+        if (async) {
+        req.onreadystatechange = hdl;
+        }*/
+        req.send('');
+        // if (!async) hdl();
+
+        p.log('q');
         return this;
     }
 
@@ -148,6 +238,17 @@ function Loader(opts) {
     //
     // List helpers
     //
+
+    if (!Array.indexOf) {
+        Array.prototype.indexOf = function (obj, start) {
+            for (var i = (start || 0); i < this.length; i++) {
+                if (this[i] == obj) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+    }
 
     Array.prototype.map = function (cb) {
         var ret = [];
@@ -166,99 +267,100 @@ function Loader(opts) {
         return this;
     }
 
-    Array.prototype.find = function (cb) {
+    Array.prototype.or = function (cb) {
         var ret = false;
         for (var k = 0; k < this.length; k++) {
-            ret |= cb(this[k], k);
+            var r = cb(this[k], k);
+            // console.log('Array or; cb for ' + this[k] + ' returned ' + r);
+            ret |= r;
         }
         return ret;
     }
 
-    Array.prototype.anyOf = function (items) {
-        return this.find(function (e, i) { return (items.indexOf(e) != -1); });
+    Array.prototype.any = function (items) {
+        items = Array.clean(items);
+        if (items.length < 1)
+            return true;
+        var self = this;
+        return items.or(function (e, i) { return (self.indexOf(e) != -1); });
     }
-    Array.clean = function (items) { 
+
+    Array.prototype.all = function (items) {
+        items = Array.clean(items);
+        if (items.length < 1)
+            return true;
+        if (this.length < 1)
+            return false;
+        var self = this;
+        return !items.or(function (e, i) { return (self.indexOf(e) == -1); });
+    }
+
+    Array.clean = function (items) {
         if (typeof (items) == 'undefined')
             return;
         if (typeof (items) == 'string')
             items = [items];
         return items;
     }
+
     Array.prototype._enableItems = function (items, yes) {
-        p.log('enableItems: ', items, yes);        
+        items = Array.clean(items);
+        // p.log('enableItems: ', items, yes);        
         if (typeof (yes) == 'undefined')
             yes = true;
-        if (typeof (items) == 'undefined')
-            return;
-        if (typeof (items) == 'string')
-            items = [items];
         for (var k = 0; k < items.length; k++) {
             var dep = items[k];
             var i = this.indexOf(dep);
             if (i == -1 && yes) {
-                p.log('enableItems: adding ' + dep);
+                // p.log('Array.enableItems: adding ' + dep);
                 this.push(dep);
             }
             else if (i != -1 && !yes) {
-                p.log('enableItems: removing ' + dep);
+                // p.log('Array.enableItems: removing ' + dep);
                 this.splice(i, 1);
             }
         }
     }
+
     Array.prototype.addItems = function (items) {
         this._enableItems(items, true);
     }
+
     Array.prototype.removeItems = function (items) {
         this._enableItems(items, false);
     }
 
-
     //
     // Dependency list
     //
+
     p.markReady = function (deps) {
-        deps = Array.clean(deps);
-        p.log('markReady: ', deps);
         p.deps.ready.addItems(deps);
     }
 
     p.isReady = function (deps) {
-        deps = Array.clean(deps);
-        if (deps.length == 0)
-            return true;
-        return p.deps.ready.anyOf(deps);
+        return p.deps.ready.all(deps);
     }
 
     p.markLoaded = function (deps) {
-        deps = Array.clean(deps);
-        p.log('markLoaded: ', deps);
         p.deps.loaded.addItems(deps);
     }
 
+    p.isLoaded = function (deps) {
+        return p.deps.loaded.all(deps);
+    }
+
     p.markLoading = function (deps, yes) {
-        deps = Array.clean(deps);
-        p.log('markLoading: ', deps, yes);
         if (typeof (yes) == 'undefined')
             yes = true;
         if (yes)
             p.deps.loading.addItems(deps);
         else
             p.deps.loading.removeItems(deps);
-
     }
 
     p.isLoading = function (deps) {
-        deps = Array.clean(deps);
-        if (deps.length == 0)
-            return true;
-        return p.deps.loading.anyOf(deps);
-    }
-
-    p.isLoaded = function (deps) {
-        deps = Array.clean(deps);
-        if (deps.length == 0)
-            return true;
-        return p.deps.loaded.anyOf(deps);
+        return p.deps.loading.all(deps);
     }
 
     //
@@ -275,314 +377,187 @@ function Loader(opts) {
             return ret;
         }
         ret["provides"] = function (dep, cb) {
-            var item = { event: event, callback: cb, deps: _d, provides: dep };
-            p.log('createModuleObject: provides called:', item);
-            // p.queueDeps(_d);
-            // p.events.push(item);
-            p.queueJob({
-                handler: p.executeFunctionJob,
-                item: item,
-                callback: cb,
-                deps: _d,
-                provides: dep
-            });
-            // p.markLoaded(dep);
+            var item = { callback: cb, deps: _d, provides: dep };
+            DEBUG && p.log('createModuleObject: provides called:', item);
+            // p.queueDepJobs(_d);
+            p.queueExec(cb, _d, dep, item);
+            p.markLoaded(dep);
             donecb(item);
+            _d = [];
             return ret;
         }
         return ret;
     }
 
-    p.queueDepJobs = function (deps) {
-        p.log('queueDepJobs: ', deps);
-        if (typeof (deps) == 'undefined')
-            return;
-        if (typeof (deps) == 'string')
-            deps = [deps];
-        for (var k = 0; k < deps.length; k++) {
-            var dep = deps[k];
-            if (p.isLoaded(dep))
-                continue;
-            if (p.isLoading(dep))
-                continue;
-            p.log('queueDepJobs: queueing resolve dependency job: ' + dep);
-            p.queueJob({
-                handler: p.resolveDependencyJob,
-                name: dep
-            });
-        }
-    }
-
     p.resolveDependencyJob = function (job) {
-        var dep = job.name;
-        p.log('resolveDependencyJob: trying to resolve dependency: ' + dep);
+        var dep = job.provides;
+        DEBUG && p.log('resolve: trying to resolve dependency: ' + dep);
+
+        if (p.isReady(dep)) {
+            DEBUG && p.log('resolve: ', dep, ' already ready, skip...');
+            p.queueCombTick();
+            return;
+        }
+
+        if (p.isLoading(dep)) {
+            DEBUG && p.log('resolve: ', dep, ' already loading, wait...');
+            p.queueCombTick();
+            return;
+        }
 
         if (typeof (job.deps) != 'undefined') {
             if (p.isLoaded(job.deps)) {
-                p.log('resolveDependencyJob: ', job.deps, ' already loaded, skip.');
-                // p.queueJob(job); // try again later
+                DEBUG && p.log('resolve: ', job.deps, ' already loaded, skip.');
+                // p.queueJob(job); 
+                // try again later
                 p.queueCombTick();
                 return;
             }
         }
 
-        if (p.isLoading(dep)) {
-            p.log('resolveDependencyJob: ', dep, ' already loading, wait...');
-            p.queueCombTick();
-            return;
-        }
-
         p.markLoading(dep, true);
-        p.log('resolveDependencyJob: Resolving dependency: ' + dep);
         var url = p.getUrlFromDep(dep);
-        p.log('resolveDependencyJob: downloading', url);
+        DEBUG && p.log('resolve: Resolving dependency: ' + dep + ' from ' + url);
+        // p.log('resolve: downloading', url);
+        DEBUG && p.log('-----xhr-----');
         p.xhr(url, { callback: function () {
-
-            p.markLoading(dep, false);
-            p.log('resolveDependencyJob: downloaded', this.responseText);
+            p.markLoading(dep, false); // done loading
+            var that = this;
+            DEBUG && p.log('resolve: downloaded', this.responseText);
             // wrap in a function and inject a few objects
-            var fn = new Function('module', this.responseText);
-            var _mod = p.createModuleObject(function (data) {
-                p.log('resolveDependencyJob: Module created from within resolveDependencyJob', data);
-            });
-            // call it
-            p.log('resolveDependencyJob: invoking.');
-            fn(_mod);
+            (function () {
+                DEBUG && p.log('before create');
+                var fn = new Function("module", "loader", that.responseText);
+                DEBUG && p.log('created', fn);
+                var module = p.createModuleObject(function (data) {
+                    DEBUG && p.log('resolve: Module created from within resolve', data);
+                });
+                // call it
+                DEBUG && p.log('resolve: invoking.');
+                fn.apply(this, [module, ret]);
+                DEBUG && p.log('resolve: done invoking.');
+            })();
             p.queueCombTick();
         }, error: function () {
-            p.log('resolveDependencyJob: failed to load', u);
+            DEBUG && p.log('resolve: failed to load', u);
             p.queueJob(job); // try again later
             p.queueCombTick();
         }
         });
     };
 
-    p.executeFunctionJob = function (job) {
-        p.log('executeFunctionJob:', job);
+
+    p.executeJob = function (job) {
+        DEBUG && p.log('exec: ' + job);
 
         if (!p.isReady(job.deps)) {
-            p.log('executeFunctionJob: missing dependencies', job.deps);
+            DEBUG && p.log('exec: some missing dependencies', job.deps);
             p.queueDepJobs(job.deps);
             p.queueJob(job); // try again later
             p.queueCombTick();
             return;
         }
 
-        p.log('executeFunctionJob: dependencies are met, run!');
+        DEBUG && p.log('exec: dependencies are met, run!');
         job.callback.apply(p.scope);
         if (typeof (job.provides) != 'undefined')
             p.markReady(job.provides);
         p.queueCombTick();
     };
 
-    /*
-    p.exeTick = function () {
-    // console.log('exe tick, queue', p.exequeue);
-    var ready = [];
-    for (var k = 0; k < p.exequeue.length; k++)
-    if (p.areDepsReady(p.exequeue[k].deps))
-    ready.push(k);
-    for (var k = ready.length - 1; k >= 0; k--) {
-    var item = p.exequeue[ready[k]];
-    item.callback.apply(p.scope);
-    p.markDepLoaded(item.provides);
-    }
-    for (var k = ready.length - 1; k >= 0; k--)
-    p.exequeue.splice(ready[k], 1);
-    if (p.exequeue.length > 0)
-    p.queueExeTick();
+    p.queueExec = function (callback, deps, provides, item) {
+        p.queueJob({
+            handler: p.executeJob,
+            item: item,
+            callback: callback,
+            deps: deps,
+            provides: provides
+        });
     }
 
-    p.lastExeTick = -1;
-    p.queueExeTick = function () {
-    if (p.exequeue.length == 0)
-    return;
-    if (p.lastExeTick != -1)
-    clearTimeout(p.lastExeTick);
-    p.lastExeTick = setTimeout(function () {
-    p.lastExeTick = -1;
-    p.exeTick();
-    }, 1);
+    p.queueResolve = function (dep) {
+        p.queueJob({
+            handler: p.resolveDependencyJob,
+            provides: dep
+        });
     }
 
-    p.fileTick = function () {
-    // console.log('file tick');
-    if (p.filequeue.length < 1)
-    return;
-    var f = p.filequeue[0];
-    // console.log('file tick, download ', f);
-    p.loading.push(f);
-    p.filequeue.splice(0, 1);
-    var u = p.getUrlFromDep(f);
-    p.log('downloading', u);
-    p.xhr(u, { callback: function () {
-    p.log('downloaded', this.responseText);
-    // wrap in a function and inject a few objects
-    var fn = new Function('module', this.responseText);
-    var _mod = p.createModuleObject(function () {
-    p.log('Module created from within fileTick');
-    });
-    // call it
-    p.log('invoking.');
-    fn(_mod);
-    p.log('done invoking, queue next...');
-    p.queueExeTick();
-    }, error: function () {
-    p.queueExeTick();
-    }
-    });
+
+
+
+
+
+
+
+    p.queueDepJobs = function (deps) {
+        // p.log('queueDepJobs: ', deps);
+        if (typeof (deps) == 'undefined')
+            return;
+        if (typeof (deps) == 'string')
+            deps = [deps];
+        for (var k = 0; k < deps.length; k++) {
+            var dep = deps[k];
+            if (p.isLoaded(dep)) {
+                DEBUG && p.log('queueDepJobs: dependency already loaded: ' + dep);
+                continue;
+            }
+            if (p.isReady(dep)) {
+                DEBUG && p.log('queueDepJobs: dependency already ready: ' + dep);
+                continue;
+            }
+            DEBUG && p.log('queueDepJobs: queueing resolve dependency job: ' + dep);
+            p.queueResolve(dep);
+        }
     }
 
-    p.lastFileTick = -1;
-    p.queueFileTick = function () {
-    if (p.filequeue.length == 0)
-    return;
-    if (p.lastFileTick != -1)
-    clearTimeout(p.lastFileTick);
-    p.lastFileTick = setTimeout(function () {
-    p.lastFileTick = -1;
-    p.fileTick();
-    }, 1);
-    }
-    */
 
-    p.innerRun = function (callback, deps, event) {
-        p.log('innerRun: called with deps=', deps, 'event=', event, 'callback=', callback);
+
+    p.innerRun = function (callback, deps) {
+        DEBUG && p.log('innerRun: called with deps=', deps, 'callback=', callback);
 
         if (typeof (deps) == 'string')
             deps = [deps];
         if (typeof (deps) == 'undefined')
             deps = [];
-        if (typeof (event) == 'undefined')
-            event = '';
-        if (event != '') {
-            p.log('innerRun: is event (' + event + '), queue for later run.');
-            // p.queueDeps(
-            p.events.push({ event: event, callback: callback, deps: deps });
-            // console.log(p.events);
-            // p.queueExeTick();
-            return;
-        }
 
-        p.log('innerRun: queue all dependencies');
-        if (p.isLoaded(deps)) {
-            p.log('innerRun: all dependencies satisfied, run now.');
+        DEBUG && p.log('innerRun: queue all dependencies');
+        if (p.isReady(deps)) {
+            DEBUG && p.log('innerRun: all dependencies satisfied, run now.');
             callback.apply(p.scope);
             p.queueCombTick();
             return;
         }
 
-        p.log('innerRun: queue later.');
+        DEBUG && p.log('innerRun: queue later.');
         // p.queueDeps(deps);
-        p.queueJob({ handler: p.executeFunctionJob, callback: callback, deps: deps });
+        p.queueExec(callback, deps, undefined, undefined);
         p.queueCombTick();
     }
-    /*
-    p.innerProvide = function (dep, cb, deps) {
-    if (typeof (deps) == 'string')
-    deps = [deps];
-    if (typeof (deps) == 'undefined')
-    deps = [];
-    // console.log('Loader ## provided', dep, 'requires', deps);
-    if (p.areDepsReady(deps)) {
-    p.loaded.push(dep);
-    cb.apply(p.scope);
-    } else {
-    p.queueDeps(deps);
-    p.exequeue.push({
-    callback: function () {
-    p.loaded.push(dep);
-    cb.apply(p.scope);
-    },
-    deps: deps
-    });
-    }
-    p.queueFileTick();
-    p.queueExeTick();
-    }*/
-
-    p.innerFire = function (id) {
-
-        p.log('innerFire: fire events (' + id + ')');
-
-        var sel = [];
-
-        for (var k = 0; k < p.events.length; k++)
-            if (p.events[k].event == id)
-                sel.push(k);
-
-        if (sel.length < 1)
-            return;
-
-        for (var k = 0; k < sel.length; k++) {
-            var item = p.events[sel[k]];
-            p.queueJob({
-                handler: p.executeFunctionJob,
-                callback: item.callback,
-                deps: item.deps
-            });
-        }
-
-        for (var k = sel.length - 1; k >= 0; k--)
-            p.events.splice(sel[k], 1);
-
-        p.queueCombTick(); // asap!
-    }
-
-    p.innerRegisterDomEvents = function () {
-        if (document.addEventListener) {
-            // console.log('registering handlers with addEventListener');
-            document.addEventListener('load', function () { p.innerFire('load'); }, false);
-            document.addEventListener('DOMContentLoaded', function () { p.innerFire('ready'); }, false);
-        } else if (document.attachEvent) {
-            //console.log('registering handlers with attachEvent');
-            document.attachEvent('onload', function () { p.innerFire('load'); });
-            document.attachEvent('ondocumentready', function () { p.innerFire('ready'); });
-        } else {
-            // console.log('registering handlers fallback');
-            document.onload = function () { p.innerFire('load'); };
-            document.ondocumentready = function () { p.innerFire('ready'); };
-        }
-    }
-
-    var ret = {};
 
     ret["module"] = p.createModuleObject(function () {
-        p.log('Module created from Loader, start ticks');
-        // p.queueFileTick();
-        // p.queueExeTick();
+        DEBUG && p.log('Module created from Loader, start ticks');
     });
 
     ret["load"] = function (dep) {
-        p.queueDeps(dep);
-        // p.queueFileTick();
-        // p.queueExeTick();
+        p.queueDepJobs(dep);
+        p.queueCombTick();
     };
 
     ret["requires"] = function (deps, cb) {
-        p.innerRun(cb, deps, '');
+        p.innerRun(cb, deps);
     };
     ret["require"] = function (deps, cb) {
-        p.innerRun(cb, deps, '');
-    };
-    ret["when"] = function (eventid, cb) {
-        p.innerRun(cb, [], eventid);
-    };
-    ret["fire"] = function (eventid) {
-        p.innerFire(eventid);
-    };
-    ret["run"] = function (callback, deps, eventid) {
-        p.innerRun(callback, deps, eventid);
-    };
-    ret["registerDomEvents"] = function () {
-        p.innerRegisterDomEvents();
+        p.innerRun(cb, deps);
     };
 
-    if (p.domevents)
-        p.innerRegisterDomEvents();
+    ret["run"] = function (callback, deps) {
+        p.innerRun(callback, deps);
+    };
 
     p.queueCombTick(); // tick tock...
+    DEBUG && p.log('ready.');
 
     return ret;
 }
 window["Loader"] = Loader;
+
