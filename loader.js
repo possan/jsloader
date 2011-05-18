@@ -2,7 +2,7 @@
 // JS LOADER 0.1
 //
 
-/** @define {boolean} DEBUG */ 
+/** @define {boolean} DEBUG */
 var DEBUG = true;
 
 /** @constructor */
@@ -85,34 +85,34 @@ function Loader(opts) {
                 return ret;
             }
         }
-        DEBUG && p.log('queueJob: queueing ' + job);
         p._jobQueue.push(job);
         if (DEBUG) {
+            p.log('queueJob: queueing ' + job);
             for (var k = 0; k < p._jobQueue.length; k++)
                 p.log('queueJob: new queue #' + k + ': ' + p._jobQueue[k]);
         }
     }
 
-    p.tickCounter = 0;
+    if (DEBUG) 
+        p.tickCounter = 0;
 
     p.combTick = function () {
-        p.tickCounter++;
-
-        // p.log('combTick #'+p.tickCounter);
+        if (DEBUG)
+            p.tickCounter++;
 
         if (p._jobQueue.length < 1) {
             DEBUG && p.log('combTick #' + p.tickCounter + '; queue empty.');
-            // queue is empty, check again in a while.
-            p.queueCombTick(DEBUG ? 2000 : 5000);
             return;
         }
 
-        DEBUG && p.log('--------------------------------------------------------------------------');
-        DEBUG && p.log('combTick #' + p.tickCounter + '; ' + p._jobQueue.length + ' jobs in queue.');
-        DEBUG && p.log('deps.loading: ' + p.deps.loading);
-        DEBUG && p.log('deps.loaded: ' + p.deps.loaded);
-        DEBUG && p.log('deps.ready: ' + p.deps.ready);
-        DEBUG && p.log('--------------------------------------------------------------------------');
+        if (DEBUG) {
+            p.log('--------------------------------------------------------------------------');
+            p.log('combTick #' + p.tickCounter + '; ' + p._jobQueue.length + ' jobs in queue.');
+            p.log('deps.loading: ' + p.deps.loading);
+            p.log('deps.loaded: ' + p.deps.loaded);
+            p.log('deps.ready: ' + p.deps.ready);
+            p.log('--------------------------------------------------------------------------');
+        }
 
         var job = p._jobQueue.splice(0, 1)[0];
         job.handler(job);
@@ -175,7 +175,7 @@ function Loader(opts) {
             o = {};
             o.callback = options;
         };
-        p.log('q');
+        
         var that = this,
             method = o.method || 'get',
             i = 0;
@@ -186,13 +186,12 @@ function Loader(opts) {
             return;
         }
 
-        // p-c req.handleResp = o.callback;
         o.error = (o.error && typeof o.error == 'function') ? o.error : function () { };
 
         req.onreadystatechange = function (a) {
-            p.log('req.onreadystatechange', req.readyState);
+            DEBUG && p.log('req.onreadystatechange', req.readyState);
             if (req.readyState == 4) {
-                p.log('req.status', req.status);
+                DEBUG && p.log('req.status', req.status);
                 // delete (that.xmlHttpRequest);
                 if (req.status === 0 || req.status == 200)
                     o.callback.apply(req, [that]);
@@ -201,30 +200,10 @@ function Loader(opts) {
             }
         }
 
-        /*
-        if (o.headers) {
-        for (; i < o.headers.length; i++) {
-        req.setRequestHeader(o.headers[i].name, o.headers[i].value);
-        }
-        }
-        */
         req.open(method, url, true);
-
         that.xmlHttpRequest = req;
-
-        /*
-        p.log('q');
-        function hdl() {
-           
-        }
-        p.log('q');
-        if (async) {
-        req.onreadystatechange = hdl;
-        }*/
         req.send('');
-        // if (!async) hdl();
 
-        p.log('q');
         return this;
     }
 
@@ -250,12 +229,13 @@ function Loader(opts) {
         }
     }
 
+    /*
     Array.prototype.map = function (cb) {
         var ret = [];
         for (var k = 0; k < this.length; k++) {
             var r = cb(this[k], k);
             for (var i = 0; i < r.length; i++)
-                cb.push(r[i]);
+                ret.push(r[i]);
         }
         return ret;
     }
@@ -266,12 +246,12 @@ function Loader(opts) {
         }
         return this;
     }
+    */
 
     Array.prototype.or = function (cb) {
         var ret = false;
         for (var k = 0; k < this.length; k++) {
             var r = cb(this[k], k);
-            // console.log('Array or; cb for ' + this[k] + ' returned ' + r);
             ret |= r;
         }
         return ret;
@@ -393,18 +373,13 @@ function Loader(opts) {
         var dep = job.provides;
         DEBUG && p.log('resolve: trying to resolve dependency: ' + dep);
 
-        if (p.isReady(dep)) {
-            DEBUG && p.log('resolve: ', dep, ' already ready, skip...');
+        if (p.isReady(dep) || p.isLoading(dep) || p.isLoaded(dep)) {
+            DEBUG && p.log('resolve: ', dep, ' already loaded, ready or loading...');
             p.queueCombTick();
             return;
         }
-
-        if (p.isLoading(dep)) {
-            DEBUG && p.log('resolve: ', dep, ' already loading, wait...');
-            p.queueCombTick();
-            return;
-        }
-
+        
+        /*
         if (typeof (job.deps) != 'undefined') {
             if (p.isLoaded(job.deps)) {
                 DEBUG && p.log('resolve: ', job.deps, ' already loaded, skip.');
@@ -414,6 +389,7 @@ function Loader(opts) {
                 return;
             }
         }
+        */
 
         p.markLoading(dep, true);
         var url = p.getUrlFromDep(dep);
@@ -505,6 +481,10 @@ function Loader(opts) {
                 DEBUG && p.log('queueDepJobs: dependency already ready: ' + dep);
                 continue;
             }
+            if (p.isLoading(dep)) {
+                DEBUG && p.log('queueDepJobs: dependency already loading: ' + dep);
+                continue;
+            }
             DEBUG && p.log('queueDepJobs: queueing resolve dependency job: ' + dep);
             p.queueResolve(dep);
         }
@@ -560,4 +540,3 @@ function Loader(opts) {
     return ret;
 }
 window["Loader"] = Loader;
-

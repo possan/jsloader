@@ -9,4 +9,7 @@ rem @"c:\program files (x86)\java\jre6\bin\java" -jar "..\compiler.jar" --js=rea
 type ready-release.js > "ready+loader-release.js"
 type loader-release.js >> "ready+loader-release.js"
 
+type ready-debug.js > "ready+loader-debug.js"
+type loader-debug.js >> "ready+loader-debug.js"
+
 dir /a *.js
