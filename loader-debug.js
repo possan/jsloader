@@ -1,86 +1,90 @@
-window.Loader = function(h) {
-  var a = {scope:this.callee, r:"js", root:"", a:{h:[], loaded:[], m:[]}, w:!0}, i = {};
+window.Loader = function(g) {
+  function h(a, d) {
+    for(var c = 0;c < a.length;c++) {
+      if(a[c] == d) {
+        return c
+      }
+    }
+    return-1
+  }
+  var j = this.callee, a = {scope:j, f:[], b:{}, p:!0};
+  a.root = g.root || "./";
+  a.prefix = g.prefix || "";
+  a.w = g.extension || ".js";
+  a.p = g.nocache || !1;
   a.log = function() {
     var a = !1;
     if(typeof console != "undefined") {
       try {
         console.log.apply(console, arguments), a = !0
-      }catch(c) {
+      }catch(d) {
       }
     }
     if(!a && (a = document.getElementById("legacydebug"), typeof a != "undefined" && a)) {
-      for(var d = document.createElement("div"), e = "", g = 0;g < arguments.length;g++) {
-        e += arguments[g] + " "
+      for(var c = document.createElement("div"), e = "", i = 0;i < arguments.length;i++) {
+        e += arguments[i] + " "
       }
-      d.innerHTML = e;
-      a.appendChild(d)
+      c.innerHTML = e;
+      a.appendChild(c)
     }
   };
-  if(h && h.root) {
-    a.root = h.root
-  }
-  if(h && h.extension) {
-    a.r = h.extension
-  }
-  if(h && h.nocache) {
-    a.w = h.nocache
-  }
-  a.d = [];
-  a.i = function(b) {
+  a.k = [];
+  a.j = function(b) {
     b.toString = function() {
       var a = "";
-      typeof this.a != "undefined" && this.a.length > 0 && (a += "deps=" + this.a);
-      typeof this.b != "undefined" && (a != "" && (a += ", "), a += "provides=" + this.b);
+      typeof this.n != "undefined" && this.n.length > 0 && (a += "deps=" + this.n);
+      typeof this.C != "undefined" && (a != "" && (a += ", "), a += "provides=" + this.C);
       return"[" + a + "]"
     };
-    a.d.push(b);
-    a.log("queueJob: queueing " + b);
-    for(b = 0;b < a.d.length;b++) {
-      a.log("queueJob: new queue #" + b + ": " + a.d[b])
-    }
+    a.k.push(b);
+    a.log("queueJob: queueing ", b)
   };
-  a.n = 0;
-  a.B = function() {
-    a.n++;
-    if(a.d.length < 1) {
-      a.log("combTick #" + a.n + "; queue empty.")
+  a.r = 0;
+  a.t = function() {
+    a.r++;
+    if(a.k.length < 1) {
+      a.log("combTick #" + a.r + "; queue empty.")
     }else {
       a.log("--------------------------------------------------------------------------");
-      a.log("combTick #" + a.n + "; " + a.d.length + " jobs in queue.");
-      a.log("deps.loading: " + a.a.h);
-      a.log("deps.loaded: " + a.a.loaded);
-      a.log("deps.ready: " + a.a.m);
+      a.log("BEFORE JOB");
       a.log("--------------------------------------------------------------------------");
-      var b = a.d.splice(0, 1)[0];
-      b.s(b)
+      a.log("modulecache", a.b);
+      a.log("loading", a.f);
+      a.log("--------------------------------------------------------------------------");
+      var b = a.k.splice(0, 1)[0];
+      b.o(b);
+      a.log("--------------------------------------------------------------------------");
+      a.log("AFTER JOB");
+      a.log("--------------------------------------------------------------------------");
+      a.log("modulecache", a.b);
+      a.log("loading", a.f);
+      a.log("--------------------------------------------------------------------------")
     }
   };
-  a.g = -1;
+  a.i = -1;
   a.c = function() {
     var b;
-    a.g != -1 && clearTimeout(a.g);
-    typeof b == "undefined" && (b = 100);
-    a.g = setTimeout(function() {
-      a.g = -1;
-      a.B()
+    a.i != -1 && clearTimeout(a.i);
+    typeof b == "undefined" && (b = 500);
+    a.i = setTimeout(function() {
+      a.i = -1;
+      a.t()
     }, b)
   };
-  a.k = !1;
-  a.F = function() {
+  a.m = !1;
+  a.B = function() {
     if(window.XMLHttpRequest) {
-      return a.log("creating using window.XMLHttpRequest"), new XMLHttpRequest
+      return new XMLHttpRequest
     }else {
       if(window.ActiveXObject) {
-        if(a.log("creating using window.ActiveXObject"), a.k) {
-          return new ActiveXObject(a.k)
+        if(a.m) {
+          return new ActiveXObject(a.m)
         }else {
-          for(var b = ["Msxml2.XMLHTTP.6.0", "Msxml2.XMLHTTP.5.0", "Msxml2.XMLHTTP.4.0", "MSXML2.XMLHTTP.3.0", "MSXML2.XMLHTTP", "Microsoft.XMLHTTP"], c = 0;c < b.length;c++) {
+          for(var b = ["Msxml2.XMLHTTP.6.0", "Msxml2.XMLHTTP.5.0", "Msxml2.XMLHTTP.4.0", "MSXML2.XMLHTTP.3.0", "MSXML2.XMLHTTP", "Microsoft.XMLHTTP"], d = 0;d < b.length;d++) {
             try {
-              a.log("trying " + b[c]);
-              var d = new ActiveXObject(b[c]);
-              a.log("got " + d);
-              if(d) {
-                return a.k = b[c], d
+              var c = new ActiveXObject(b[d]);
+              if(c) {
+                return a.m = b[d], c
               }
             }catch(e) {
             }
@@ -88,191 +92,173 @@ window.Loader = function(h) {
         }
       }
     }
-    a.log("no xhr created.");
     return!1
   };
-  a.M = function(b, c) {
-    var d = c ? c : {};
-    if(typeof c == "function") {
-      d = {}, d.e = c
+  a.F = function(b, d) {
+    var c = d ? d : {};
+    if(typeof d == "function") {
+      c = {}, c.e = d
     }
-    var e = this, g = d.method || "get", f = a.F();
-    typeof f == "undefined" ? a.log("unable to create a xhr") : (d.error = d.error && typeof d.error == "function" ? d.error : function() {
-    }, f.onreadystatechange = function() {
-      a.log("req.onreadystatechange", f.readyState);
-      f.readyState == 4 && (a.log("req.status", f.status), (f.status === 0 || f.status == 200) && d.e.apply(f, [e]), /^[45]/.test(f.status) && d.error.apply(f))
-    }, f.open(g, b, !0), e.N = f, f.send(""))
+    var e = this, i = c.method || "get", f = a.B();
+    if(typeof f != "undefined") {
+      c.error = c.error && typeof c.error == "function" ? c.error : function() {
+      }, f.onreadystatechange = function() {
+        f.readyState == 4 && ((f.status === 0 || f.status == 200) && c.e.apply(f, [e]), /^[45]/.test(f.status) && c.error.apply(f))
+      }, f.open(i, b, !0), e.G = f, f.send("")
+    }
   };
-  a.D = function(b) {
-    b = a.root + b + "." + a.r;
-    a.w && (b += "?dummy=" + escape(Math.random()));
+  a.A = function(b) {
+    b = a.root + a.prefix + b + a.w;
+    a.p && (b += "?dummy=" + escape(Math.random()));
     return b
   };
-  if(!Array.indexOf) {
-    Array.prototype.indexOf = function(a, c) {
-      for(var d = c || 0;d < this.length;d++) {
-        if(this[d] == a) {
-          return d
-        }
-      }
-      return-1
+  a.l = function(a) {
+    if(typeof a == "undefined") {
+      return[]
     }
-  }
-  Array.prototype.I = function(a) {
-    for(var c = !1, d = 0;d < this.length;d++) {
-      var e = a(this[d], d);
-      c |= e
+    if(typeof a == "string") {
+      return[a]
     }
-    return c
-  };
-  Array.prototype.all = function(a) {
-    a = Array.p(a);
-    if(a.length < 1) {
-      return!0
-    }
-    if(this.length < 1) {
-      return!1
-    }
-    var c = this;
-    return!a.I(function(a) {
-      return c.indexOf(a) == -1
-    })
-  };
-  Array.p = function(a) {
-    if(typeof a != "undefined") {
-      return typeof a == "string" && (a = [a]), a
-    }
-  };
-  Array.prototype.o = function(a, c) {
-    a = Array.p(a);
-    typeof c == "undefined" && (c = !0);
-    for(var d = 0;d < a.length;d++) {
-      var e = a[d], g = this.indexOf(e);
-      g == -1 && c ? this.push(e) : g != -1 && !c && this.splice(g, 1)
-    }
-  };
-  Array.prototype.j = function(a) {
-    this.o(a, !0)
-  };
-  Array.prototype.K = function(a) {
-    this.o(a, !1)
-  };
-  a.H = function(b) {
-    a.a.m.j(b)
-  };
-  a.f = function(b) {
-    return a.a.m.all(b)
-  };
-  a.G = function(b) {
-    a.a.loaded.j(b)
-  };
-  a.t = function(b) {
-    return a.a.loaded.all(b)
-  };
-  a.v = function(b, c) {
-    typeof c == "undefined" && (c = !0);
-    c ? a.a.h.j(b) : a.a.h.K(b)
+    return a
   };
   a.u = function(b) {
-    return a.a.h.all(b)
-  };
-  a.q = function(b) {
-    var c = [], d = {};
-    d.requires = function(a) {
-      typeof a == "string" && (a = [a]);
-      c = a;
-      return d
-    };
-    d.provides = function(e, g) {
-      var f = {e:g, a:c, b:e};
-      a.log("createModuleObject: provides called:", f);
-      a.A(g, c, e, f);
-      a.G(e);
-      b(f);
-      c = [];
-      return d
-    };
-    return d
-  };
-  a.L = function(b) {
-    var c = b.b;
-    a.log("resolve: trying to resolve dependency: " + c);
-    if(a.f(c) || a.u(c) || a.t(c)) {
-      a.log("resolve: ", c, " already loaded, ready or loading..."), a.c()
-    }else {
-      a.v(c, !0);
-      var d = a.D(c);
-      a.log("resolve: Resolving dependency: " + c + " from " + d);
-      a.log("-----xhr-----");
-      a.M(d, {e:function() {
-        a.v(c, !1);
-        var b = this;
-        a.log("resolve: downloaded", this.responseText);
-        (function() {
-          a.log("before create");
-          var c = new Function("module", "loader", b.responseText);
-          a.log("created", c);
-          var d = a.q(function(b) {
-            a.log("resolve: Module created from within resolve", b)
-          });
-          a.log("resolve: invoking.");
-          c.apply(this, [d, i]);
-          a.log("resolve: done invoking.")
-        })();
-        a.c()
-      }, error:function() {
-        a.log("resolve: failed to load", u);
-        a.i(b);
-        a.c()
-      }})
+    return function(d, c, e) {
+      typeof e == "undefined" ? typeof c == "undefined" ? (a.log("registering module ", b, " (", d, ") without dependencies"), a.b[b] = {e:d, a:[], d:!0}, a.log("marking module READY", b)) : (a.log("registering module", b, "(", c, ") with dependencies", d), a.b[b] = {e:c, a:d, d:!1}, a.h(d)) : (a.log("registering module ", b, "(", e, ") with dependencies", d), a.b[b] = {e:e, a:d, d:!1}, a.h(d))
     }
   };
-  a.C = function(b) {
-    a.log("exec: " + b);
-    a.f(b.a) ? (a.log("exec: dependencies are met, run!"), b.e.apply(a.scope), typeof b.b != "undefined" && a.H(b.b)) : (a.log("exec: some missing dependencies", b.a), a.z(b.a), a.i(b));
-    a.c()
-  };
-  a.A = function(b, c, d, e) {
-    a.i({s:a.C, item:e, e:b, a:c, b:d})
-  };
-  a.J = function(b) {
-    a.i({s:a.L, b:b})
-  };
-  a.z = function(b) {
-    if(typeof b != "undefined") {
-      typeof b == "string" && (b = [b]);
-      for(var c = 0;c < b.length;c++) {
-        var d = b[c];
-        a.t(d) ? a.log("queueDepJobs: dependency already loaded: " + d) : a.f(d) ? a.log("queueDepJobs: dependency already ready: " + d) : a.u(d) ? a.log("queueDepJobs: dependency already loading: " + d) : (a.log("queueDepJobs: queueing resolve dependency job: " + d), a.J(d))
+  a.D = function(b) {
+    var d = b.g;
+    a.log("resolve: resolve dependency: " + d);
+    if(d[0] == ".") {
+      a.log("resolve:", d, "starts with dot, ignore."), a.c()
+    }else {
+      var c = a.b[d];
+      if(typeof c != "undefined") {
+        if(c.d == !0) {
+          a.log("resolve:", d, "already cached (and ready).")
+        }else {
+          if(a.log("resolve:", d, "already cached but not ready yet, check dependencies."), !a.h(c.a)) {
+            a.log("resolve:", d, "all dependencies ready, mark as ready."), c.d = !0
+          }
+        }
+        a.c()
+      }else {
+        h(a.f, d) != -1 ? (a.log("resolve:", d, "is loading..."), a.c()) : (h(a.f, d) == -1 && a.f.push(d), c = a.A(d), a.log("resolve: Resolving dependency: " + d + " from " + c), a.F(c, {e:function() {
+          a.f.splice(h(a.f, d), 1);
+          var b = this;
+          a.log("resolve: downloaded " + this.responseText);
+          (function() {
+            var c = a.u(d), f = new Function("define", b.responseText), g = {};
+            try {
+              f.apply(g, [c])
+            }catch(h) {
+              a.log("apply crashed."), a.log(h)
+            }
+            a.log("resolve: done invoking.")
+          })();
+          a.c()
+        }, error:function() {
+          a.log("resolve: failed to load", u);
+          a.j(b);
+          a.c()
+        }}))
       }
     }
   };
-  a.l = function(b, c) {
-    a.log("innerRun: called with deps=", c, "callback=", b);
-    typeof c == "string" && (c = [c]);
-    typeof c == "undefined" && (c = []);
-    a.log("innerRun: queue all dependencies");
-    a.f(c) ? (a.log("innerRun: all dependencies satisfied, run now."), b.apply(a.scope)) : (a.log("innerRun: queue later."), a.A(b, c, void 0, void 0));
+  a.z = function(b) {
+    b = a.l(b);
+    a.log("queueDepJobs: check dependencies: " + b);
+    if(b.length == 0) {
+      return[]
+    }
+    for(var d = [], c = 0;c < b.length;c++) {
+      var e = b[c];
+      a.log("queueDepJobs: checking for dependency: " + e);
+      typeof a.b[e] != "undefined" && a.b[e].d == !0 ? a.log("queueDepJobs: dependency already loaded: " + e) : d.push(e)
+    }
+    return d
+  };
+  a.h = function(b) {
+    var b = a.l(b), d = !1, b = a.z(b);
+    a.log("queueDepJobs: non ready dependencies:", b);
+    for(var c = 0;c < b.length;c++) {
+      d = b[c], a.log("queueDepJobs: queueing resolve dependency job: " + d), a.j({o:a.D, g:d}), d = !0
+    }
+    return d
+  };
+  a.s = function(b, d) {
+    a.log("tryResolveDependencyValue: dep=" + b + ", allowqueue=" + d);
+    var c = a.b[b];
+    if(typeof c == "undefined") {
+      return a.log("tryResolveDependencyValue: dep=" + b + ", invalid input"), !1
+    }
+    if(c.d == !0) {
+      return a.log("tryResolveDependencyValue: dep=" + b + ", using cached ready-value"), !0
+    }
+    a.log("tryResolveDependencyValue: dep=" + b + ", module:", c);
+    a.log("tryResolveDependencyValue: dep=" + b + ", module dependencies:", c.a);
+    if(a.h(c.a)) {
+      return a.c(), a.log("tryResolveDependencyValue: dep=" + b + ", has non-ready dependencies, requeue"), !1
+    }
+    for(var e = 0;e < c.a.length;e++) {
+      a.log("tryResolveDependencyValue: dep=" + b + ", trying to resolve nested dependency #" + e + ", " + c.a[e]);
+      if(a.s(c.a[e], d) == !1) {
+        return a.log("tryResolveDependencyValue: dep=" + b + ", nested resolve #" + e + " failed."), !1
+      }
+      a.log("tryResolveDependencyValue: dep=" + b + ", nested resolve #" + e + " ok")
+    }
+    a.log("tryResolveDependencyValue: dep=" + b + ", caching as ready.");
+    return c.d = !0
+  };
+  a.q = function(b) {
+    a.log("resolveDependencyValue: dep=" + b);
+    b = a.b[b];
+    if(typeof b == "undefined") {
+      return null
+    }
+    a.log("resolveDependencyValue module:", b);
+    a.log("resolveDependencyValue module dependencies:", b.a);
+    if(a.h(b.a)) {
+      return a.log("resolveDependencyValue: some missing dependencies queued", b.a), a.c(), null
+    }
+    for(var d = [], c = 0;c < b.a.length;c++) {
+      var e = a.q(b.a[c]);
+      a.log("resolved arg #" + c + " = " + e);
+      d.push(e)
+    }
+    a.log("final args", d);
+    a.log("resolveDependencyValue: dependencies are met, run!");
+    c = {};
+    a.log("resolveDependencyValue calling module:", b);
+    a.log("resolveDependencyValue: calling callback with args", d);
+    j = {};
+    c = b.e.apply(j, d);
+    a.log("resolveDependencyValue: after callback, got", c);
+    a.log("resolveDependencyValue exports", c);
+    return c
+  };
+  a.v = function(b) {
+    a.log("executeJob: executing: ", b);
+    if(a.s(b.g, !0)) {
+      a.log("executeJob: before execute");
+      var d = a.q(b.g);
+      a.log("executeJob: RESOLVED", b.g, "returned", d);
+      a.b[b.g].d = !0
+    }else {
+      a.log("executeJob: cant resolve all dependencies, try later"), a.j(b)
+    }
     a.c()
-  };
-  i.module = a.q(function() {
-    a.log("Module created from Loader, start ticks")
-  });
-  i.load = function(b) {
-    a.z(b);
-    a.c()
-  };
-  i.requires = function(b, c) {
-    a.l(c, b)
-  };
-  i.require = function(b, c) {
-    a.l(c, b)
-  };
-  i.run = function(b, c) {
-    a.l(b, c)
   };
   a.c();
   a.log("ready.");
-  return i
+  return function(b, d) {
+    b = a.l(b);
+    a.log("require: called with deps=", b, "callback=", d);
+    var c = ".$" + Math.random();
+    a.b[c] = {e:d, a:b, d:!1};
+    a.h(b);
+    a.j({o:a.v, g:c});
+    a.c()
+  }
 };
 

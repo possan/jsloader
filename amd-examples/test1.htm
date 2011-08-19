@@ -1,0 +1,61 @@
+<html>
+<head>
+	<title>test1</title>
+	 
+	<script language="javascript" type="text/javascript" src="../ready.js"></script>
+	<script language="javascript" type="text/javascript" src="../loader.js"></script>
+	<script language="javascript" type="text/javascript">
+
+		// random tests
+
+		window.require = new Loader({
+			root: 'test1-',
+			separator: '-',
+			extension: '.js'
+		});
+		
+		function button1() {
+			require(['module1'],
+				function (mod1) {
+					alert(mod1.value);
+				}
+			);
+		};
+
+		function button2() {
+			require(['module2'], function (m2) {
+				alert(m2.value);
+			});
+		};
+		
+		var x = 3;
+		/*
+		ready(function () {
+			require(['dep2'], function (dep2) {
+				x = 42;
+			});
+			require(['dep2'], function (dep2) {
+				var el = document.getElementById('legacydebug');
+				el.innerHTML = 'ready ' + x + ' ' + dep2.value;
+			});
+		});
+		*/
+		ready(function () {
+			var el = document.getElementById('legacydebug');
+			el.innerHTML = 'ready ' + x;
+			require(['module1'], function (a) {
+				console.log('html1 callback', a);
+				var el = document.getElementById('legacydebug');
+				el.innerHTML = 'got it: ' + a.value;
+			});
+		});
+  
+	</script>
+</head>
+<body>
+	<a href="javascript:button1();">button 1</a><br />
+	<a href="javascript:button2();">button 2</a><br />
+	<div id="legacydebug">
+	</div>
+</body>
+</html>
